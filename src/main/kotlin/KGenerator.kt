@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2018 Litote
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.litote.kgenerator
 
 import com.squareup.kotlinpoet.ClassName
@@ -34,7 +49,7 @@ import kotlin.reflect.jvm.internal.impl.builtins.jvm.JavaToKotlinClassMap
 import kotlin.reflect.jvm.internal.impl.name.FqName
 
 /**
- * A base class to subclass in order to implement a [javax.annotation.processing.Processor].
+ * Base class for implementing a [javax.annotation.processing.Processor].
  */
 abstract class KGenerator : AbstractProcessor() {
 
@@ -124,26 +139,30 @@ abstract class KGenerator : AbstractProcessor() {
                     if (raw.toString() == "kotlin.Array" && typeArguments.firstOrNull()?.let { javaToKotlinType(it) }?.toString() == "kotlin.Byte") {
                         ClassName.bestGuess("kotlin.ByteArray")
                     } else {
-                        raw.parameterizedBy(*typeArguments.map { javaToKotlinType(it) }.toTypedArray())
+                        raw.parameterizedBy(
+                            *typeArguments.map { javaToKotlinType(it) }.toTypedArray())
                     }
                 }
                 is WildcardTypeName -> {
                     if (outTypes.isNotEmpty()) {
-                        WildcardTypeName.producerOf(javaToKotlinType(outTypes.first()))
+                        debug { "out: $outTypes" }
+                        WildcardTypeName.producerOf(javaToKotlinType(outTypes.first()).copy(nullable = true))
                     } else {
+                        debug { "in: $inTypes" }
                         WildcardTypeName.consumerOf(javaToKotlinType(inTypes.first()))
                     }
                 }
                 else -> {
-                    debug { typeName }
-                    debug { typeName.javaClass }
+                    debug { "class: $typeName" }
                     val className = JavaToKotlinClassMap.INSTANCE.mapJavaToKotlin(FqName(toString()))
                         ?.asSingleFqName()?.asString()
-                    debug { className }
+
                     if (className == null) {
                         typeName
                     } else {
                         ClassName.bestGuess(className)
+                    }.also {
+                        debug { it }
                     }
                 }
             }
@@ -238,8 +257,10 @@ abstract class KGenerator : AbstractProcessor() {
                     outputDirectory
                 ).toUri()
             )
+            debug { directory }
             Files.createDirectories(directory)
             val outputPath = directory.resolve(file)
+            debug { outputPath }
             OutputStreamWriter(Files.newOutputStream(outputPath), StandardCharsets.UTF_8).use { writer ->
                 writer.append(
                     content
