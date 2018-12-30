@@ -140,7 +140,8 @@ abstract class KGenerator : AbstractProcessor() {
                         ClassName.bestGuess("kotlin.ByteArray")
                     } else {
                         raw.parameterizedBy(
-                            *typeArguments.map { javaToKotlinType(it) }.toTypedArray())
+                            *typeArguments.map { javaToKotlinType(it) }.toTypedArray()
+                        )
                     }
                 }
                 is WildcardTypeName -> {
@@ -176,6 +177,17 @@ abstract class KGenerator : AbstractProcessor() {
 
     fun log(value: Any?) {
         processingEnv.messager.printMessage(NOTE, value.toString())
+    }
+
+    fun log(t: Throwable) {
+        processingEnv.messager.printMessage(
+            NOTE,
+            t.run {
+                val sw = StringWriter()
+                val pw = PrintWriter(sw)
+                printStackTrace(pw)
+                sw.toString()
+            })
     }
 
     fun warn(value: Any?) {
@@ -247,7 +259,8 @@ abstract class KGenerator : AbstractProcessor() {
         outputDirectory: String,
         file: String,
         content: String,
-        location: StandardLocation = StandardLocation.SOURCE_OUTPUT
+        location: StandardLocation = StandardLocation.SOURCE_OUTPUT,
+        failOnError: Boolean = true
     ) {
         try {
             val directory = Paths.get(
@@ -267,7 +280,8 @@ abstract class KGenerator : AbstractProcessor() {
                 )
             }
         } catch (e: Exception) {
-            error(e)
+            log("Error writing $file in $outputDirectory:\n$content")
+            if (failOnError) error(e) else log(e)
         }
     }
 
