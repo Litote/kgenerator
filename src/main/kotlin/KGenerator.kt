@@ -123,7 +123,10 @@ abstract class KGenerator : AbstractProcessor() {
 
     //see https://github.com/square/kotlinpoet/issues/236
     fun javaToKotlinType(element: Element): TypeName =
-        javaToKotlinType(element.asType().asTypeName())
+        javaToKotlinType(element.asType())
+
+    fun javaToKotlinType(typeMirror: TypeMirror): TypeName =
+        javaToKotlinType(typeMirror.asTypeName())
 
     fun asTypeName(element: Element): TypeName {
         val annotation = element.getAnnotation(Nullable::class.java)
@@ -219,12 +222,6 @@ abstract class KGenerator : AbstractProcessor() {
         processingEnv.elementUtils.getPackageOf(
             processingEnv.typeUtils.asElement((type as DeclaredType).typeArguments[1])
         ).qualifiedName.toString()
-
-    fun firstTypeArgument(element: Element): TypeName =
-        (javaToKotlinType(element) as ParameterizedTypeName).typeArguments.first()
-
-    fun secondTypeArgument(element: Element): TypeName =
-        (javaToKotlinType(element) as ParameterizedTypeName).typeArguments[1]
 
     fun mapKeyClass(type: TypeMirror, annotatedMap: Boolean): TypeName? =
         if (annotatedMap) asTypeName(processingEnv.typeUtils.asElement((type as DeclaredType).typeArguments[0]) as TypeElement)
@@ -322,4 +319,47 @@ abstract class KGenerator : AbstractProcessor() {
             propertyName,
             newValue
         ).build()
+
+    /**
+     * True if the property type is a Collection.
+     */
+    fun isCollection(element: Element): Boolean =
+        element.asType() is DeclaredType
+                && env.typeUtils.isAssignable(
+            env.typeUtils.erasure(element.asType()),
+            env.elementUtils.getTypeElement("java.util.Collection").asType()
+        )
+
+    /**
+     * True if the property type is a Map.
+     */
+    fun isMap(element: Element): Boolean =
+        element.asType() is DeclaredType
+                && env.typeUtils.isAssignable(
+            env.typeUtils.erasure(element.asType()),
+            env.elementUtils.getTypeElement("java.util.Map").asType()
+        )
+
+    /**
+     * Returns the parameter type with [Element] format if any.
+     */
+    fun typeArgumentElement(element: Element, index: Int = 0): Element? =
+        (element.asType() as? DeclaredType)
+            ?.run { typeArguments.getOrNull(index) }
+            ?.let { env.typeUtils.asElement(it) }
+
+    /**
+     * Returns the parameter type with [ReflectedType] format if any.
+     */
+    fun typeArgumentReflected(element: Element, index: Int = 0): ReflectedType? =
+        typeArgumentReflected(element.asType(), index)
+
+    /**
+     * Returns the parameter type with [ReflectedType] format if any.
+     */
+    fun typeArgumentReflected(typeMirror: TypeMirror, index: Int = 0): ReflectedType? =
+        ((typeMirror as? DeclaredType) ?: (typeMirror as ReflectedType).typeMirror as? DeclaredType)
+            ?.run { typeArguments.getOrNull(index) }
+            ?.let { ReflectedType(this, it) }
+
 }

@@ -16,6 +16,7 @@
 package org.litote.kgenerator
 
 import com.squareup.kotlinpoet.CodeBlock
+import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
@@ -32,6 +33,8 @@ class AnnotatedClass(
     val internal: Boolean
 ) : TypeElement by element {
 
+    private val env = generator.env
+
     fun getPackage(): String =
         generator.env.elementUtils.getPackageOf(element).qualifiedName.toString()
 
@@ -43,6 +46,7 @@ class AnnotatedClass(
             .filterIsInstance<VariableElement>()
             .map { variable ->
                 AnnotatedProperty(
+                    generator,
                     variable,
                     findGetter(variable.simpleName.toString()),
                     constructor?.parameters?.find { variable.simpleName.toString() == it.simpleName.toString() }

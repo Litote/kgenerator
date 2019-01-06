@@ -15,6 +15,8 @@
  */
 package org.litote.kgenerator
 
+import com.squareup.kotlinpoet.ParameterizedTypeName
+import com.squareup.kotlinpoet.TypeName
 import javax.lang.model.element.Element
 import javax.lang.model.element.VariableElement
 
@@ -22,17 +24,56 @@ import javax.lang.model.element.VariableElement
  * An annotated property of an [AnnotatedClass].
  */
 class AnnotatedProperty(
+    private val generator: KGenerator,
     private val element: VariableElement,
     val getter: Element?,
     val parameter: VariableElement?
-    ) : VariableElement by element {
+) : VariableElement by element {
 
+    private val env = generator.env
+
+    /**
+     * Gets the specified annotation if any.
+     */
     inline fun <reified T : Annotation> getAnnotation(): T? =
         getAnnotation(T::class.java)
                 ?: getter?.getAnnotation(T::class.java)
                 ?: parameter?.getAnnotation(T::class.java)
 
-    inline fun <reified T : Annotation> hasAnnotation(): Boolean =
-        getAnnotation<T>() != null
+    /**
+     * Returns true if the property is annotated with the specified annotation.
+     */
+    inline fun <reified T : Annotation> hasAnnotation(): Boolean = getAnnotation<T>() != null
+
+    /**
+     * True if the property type is a Collection.
+     */
+    val isCollection: Boolean get() = generator.isCollection(this)
+
+    /**
+     * True if the property type is a Map.
+     */
+    val isMap: Boolean get() = generator.isMap(this)
+
+    /**
+     * The [TypeName] of the property.
+     */
+    val type: TypeName get() = generator.javaToKotlinType(element)
+
+    /**
+     * The [ReflectedType] of the property.
+     */
+    val reflectedType : ReflectedType = ReflectedType(generator, asType())
+
+    /**
+     * Returns the parameter type with [Element] format if any.
+     */
+    fun typeArgumentElement(index: Int = 0): Element? = generator.typeArgumentElement(this, index)
+
+    /**
+     * Returns the parameter type with [TypeName] format if any.
+     */
+    fun typeArgument(index: Int = 0): TypeName? =
+        (type as? ParameterizedTypeName)?.typeArguments?.getOrNull(index)
 
 }
