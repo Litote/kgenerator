@@ -15,14 +15,8 @@
  */
 package org.litote.kgenerator
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.ParameterizedTypeName
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.WildcardTypeName
-import com.squareup.kotlinpoet.asTypeName
 import org.jetbrains.annotations.Nullable
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
@@ -41,9 +35,7 @@ import javax.lang.model.element.TypeElement
 import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
-import javax.tools.Diagnostic.Kind.ERROR
-import javax.tools.Diagnostic.Kind.NOTE
-import javax.tools.Diagnostic.Kind.WARNING
+import javax.tools.Diagnostic.Kind.*
 import javax.tools.StandardLocation
 import kotlin.reflect.jvm.internal.impl.builtins.jvm.JavaToKotlinClassMap
 import kotlin.reflect.jvm.internal.impl.name.FqName
@@ -132,6 +124,12 @@ abstract class KGenerator : AbstractProcessor() {
         val annotation = element.getAnnotation(Nullable::class.java)
         val typeName = element.asType().asTypeName()
         return if (annotation != null) typeName.copy(nullable = true) else typeName
+    }
+
+    fun asTypeName(type: TypeMirror): TypeName {
+        val annotation =
+            type.getAnnotation(Nullable::class.java) ?: processingEnv.typeUtils.asElement(type)?.getAnnotation(Nullable::class.java)
+        return type.asTypeName().let { if (annotation != null) it.copy(nullable = true) else it }
     }
 
     fun javaToKotlinType(typeName: TypeName): TypeName =
@@ -224,7 +222,7 @@ abstract class KGenerator : AbstractProcessor() {
         ).qualifiedName.toString()
 
     fun mapKeyClass(type: TypeMirror, annotatedMap: Boolean): TypeName? =
-        if (annotatedMap) asTypeName(processingEnv.typeUtils.asElement((type as DeclaredType).typeArguments[0]) as TypeElement)
+        if (annotatedMap) asTypeName((type as DeclaredType).typeArguments[0])
         else null
 
     fun writeFile(fileBuilder: FileSpec.Builder, location: StandardLocation = StandardLocation.SOURCE_OUTPUT) {
