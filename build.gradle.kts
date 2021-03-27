@@ -5,7 +5,7 @@ group = "org.litote"
 val kotlinpoet: String by project
 
 plugins {
-    kotlin("jvm") version "1.3.10"
+    kotlin("jvm") version "1.4.32"
     `maven-publish`
     signing
 }
@@ -23,7 +23,7 @@ dependencies {
 
 buildscript {
     dependencies {
-        classpath("org.jetbrains.dokka", "dokka-gradle-plugin", "0.9.17")
+        classpath("org.jetbrains.dokka", "dokka-gradle-plugin", "0.10.1")
     }
 }
 
